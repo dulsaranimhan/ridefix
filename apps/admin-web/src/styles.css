@@ -1,0 +1,85 @@
+/* Values mirror @ridefix/ui-tokens. */
+:root {
+  --bg: #ffffff;
+  --surface: #f4f5f7;
+  --border: #dadde3;
+  --text: #14161a;
+  --muted: #5b616e;
+  --panel: #1e2128;
+  --primary: #fbba00;
+  --accent: #ff6b3d;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+.sidebar {
+  width: 232px;
+  background: var(--panel);
+  color: #fff;
+  padding: 24px 16px;
+}
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+.brand span {
+  color: var(--primary);
+}
+.nav-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: #c9ccd3;
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+.nav-link.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: var(--text);
+  font-weight: 600;
+}
+.content {
+  flex: 1;
+  padding: 32px;
+  background: var(--bg);
+}
+h1 {
+  margin: 0 0 16px;
+  font-size: 28px;
+}
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.muted {
+  color: var(--muted);
+}
+.primary {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 700;
+  color: var(--text);
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+}
+.primary:disabled {
+  opacity: 0.6;
+}

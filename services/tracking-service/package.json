@@ -1,0 +1,33 @@
+{
+  "name": "tracking-service",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shares live provider location over Socket.IO with the driver and provider of an active booking",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "clean": "rm -rf dist coverage"
+  },
+  "dependencies": {
+    "@ridefix/service-kit": "workspace:*",
+    "express": "5.3.0",
+    "socket.io": "4.8.4"
+  },
+  "devDependencies": {
+    "@ridefix/tsconfig": "workspace:*",
+    "@types/express": "5.0.6",
+    "@types/jest": "30.0.0",
+    "@types/node": "22.20.5",
+    "@types/supertest": "7.2.1",
+    "jest": "30.5.2",
+    "socket.io-client": "4.8.4",
+    "supertest": "7.3.1",
+    "ts-jest": "29.4.15",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

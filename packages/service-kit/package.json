@@ -1,0 +1,28 @@
+{
+  "name": "@ridefix/service-kit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Small shared helpers for RideFix backend services (Express app, health endpoint, errors)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "clean": "rm -rf dist coverage"
+  },
+  "dependencies": {
+    "express": "5.3.0"
+  },
+  "devDependencies": {
+    "@ridefix/tsconfig": "workspace:*",
+    "@types/express": "5.0.6",
+    "@types/jest": "30.0.0",
+    "@types/node": "22.20.5",
+    "@types/supertest": "7.2.1",
+    "jest": "30.5.2",
+    "supertest": "7.3.1",
+    "ts-jest": "29.4.15",
+    "typescript": "5.9.3"
+  }
+}

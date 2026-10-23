@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'services/*'
+  - 'packages/*'
+  - 'contracts'
+
+# Dependencies allowed to run install scripts (esbuild is used by tsx for `pnpm dev`).
+onlyBuiltDependencies:
+  - esbuild

@@ -1,0 +1,133 @@
+# Kong declarative configuration (DB-less mode).
+#
+# Clients call Kong on port 8000. Kong forwards each request to one of the six services by URL
+# path. Services are not published to the host in Docker Compose, so Kong is the only front door.
+#
+# NOT DONE YET: the Supabase JWT check. It is added in milestone 6, after we confirm the Supabase
+# project's signing method and claims (docs/decisions.md, D19). Until then Kong does NOT verify
+# tokens, so this setup is for local development only.
+_format_version: '3.0'
+
+services:
+  - name: request-service
+    url: http://request-service:4001
+    routes:
+      - name: request
+        paths: [/requests]
+        strip_path: false
+
+  # GET /health/request -> request-service GET /health
+  - name: request-service-health
+    url: http://request-service:4001/health
+    routes:
+      - name: request-health
+        paths: [/health/request]
+        methods: [GET]
+        strip_path: true
+
+  - name: matching-service
+    url: http://matching-service:4002
+    routes:
+      - name: matching
+        paths: [/matching]
+        strip_path: false
+
+  # GET /health/matching -> matching-service GET /health
+  - name: matching-service-health
+    url: http://matching-service:4002/health
+    routes:
+      - name: matching-health
+        paths: [/health/matching]
+        methods: [GET]
+        strip_path: true
+
+  - name: bidding-service
+    url: http://bidding-service:4003
+    routes:
+      - name: bidding
+        paths: [/bids]
+        strip_path: false
+
+  # GET /health/bidding -> bidding-service GET /health
+  - name: bidding-service-health
+    url: http://bidding-service:4003/health
+    routes:
+      - name: bidding-health
+        paths: [/health/bidding]
+        methods: [GET]
+        strip_path: true
+
+  - name: tracking-service
+    url: http://tracking-service:4004
+    routes:
+      - name: tracking
+        paths: [/tracking]
+        strip_path: false
+
+  # GET /health/tracking -> tracking-service GET /health
+  - name: tracking-service-health
+    url: http://tracking-service:4004/health
+    routes:
+      - name: tracking-health
+        paths: [/health/tracking]
+        methods: [GET]
+        strip_path: true
+
+  - name: payment-service
+    url: http://payment-service:4005
+    routes:
+      - name: payment
+        paths: [/payments]
+        strip_path: false
+
+  # GET /health/payment -> payment-service GET /health
+  - name: payment-service-health
+    url: http://payment-service:4005/health
+    routes:
+      - name: payment-health
+        paths: [/health/payment]
+        methods: [GET]
+        strip_path: true
+
+  - name: notification-service
+    url: http://notification-service:4006
+    routes:
+      - name: notification
+        paths: [/notifications]
+        strip_path: false
+
+  # GET /health/notification -> notification-service GET /health
+  - name: notification-service-health
+    url: http://notification-service:4006/health
+    routes:
+      - name: notification-health
+        paths: [/health/notification]
+        methods: [GET]
+        strip_path: true
+
+plugins:
+  # Limit each client IP. Generous for development; tighten before a demo on a shared network.
+  - name: rate-limiting
+    config:
+      minute: 300
+      policy: local
+      limit_by: ip
+  # Adds X-Request-ID so one request can be followed through the logs of several services.
+  - name: correlation-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+      echo_downstream: true
+  # Access log as JSON lines on Kong's stdout (`docker compose logs kong`).
+  - name: file-log
+    config:
+      path: /dev/stdout
+      reopen: false
+  # Lets the Admin Web dev server call Kong from the browser.
+  - name: cors
+    config:
+      origins: ['http://localhost:5173']
+      methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+      headers: [Authorization, Content-Type, X-Request-ID]
+      credentials: false
+      max_age: 600

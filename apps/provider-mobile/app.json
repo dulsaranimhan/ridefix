@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "RideFix Provider",
+    "slug": "provider-mobile",
+    "scheme": "ridefix-provider",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": { "bundleIdentifier": "lk.ridefix.provider", "supportsTablet": false },
+    "android": {
+      "package": "lk.ridefix.provider",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    }
+  }
+}

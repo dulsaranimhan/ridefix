@@ -1,0 +1,7 @@
+{
+  "extends": "@ridefix/tsconfig/node.json",
+  "compilerOptions": {
+    "types": ["node", "jest"]
+  },
+  "include": ["src"]
+}

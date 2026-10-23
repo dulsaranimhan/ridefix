@@ -1,0 +1,183 @@
+# Local development stack for RideFix.
+#
+#   cp .env.example .env
+#   docker compose up --build                     # Kong + PostgreSQL/PostGIS + six services
+#   docker compose --profile optional up --build  # also Redis and RabbitMQ
+#
+# Only Kong (8000) and Postgres (5432, for your DB tool) are published to your laptop.
+
+x-service: &service
+  build:
+    context: .
+    dockerfile: infra/docker/service.Dockerfile
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+  environment: &service-env
+    NODE_ENV: development
+    LOG_LEVEL: ${LOG_LEVEL:-info}
+    REQUEST_SERVICE_URL: http://request-service:4001
+    MATCHING_SERVICE_URL: http://matching-service:4002
+    BIDDING_SERVICE_URL: http://bidding-service:4003
+    TRACKING_SERVICE_URL: http://tracking-service:4004
+    PAYMENT_SERVICE_URL: http://payment-service:4005
+    NOTIFICATION_SERVICE_URL: http://notification-service:4006
+    SUPABASE_URL: ${SUPABASE_URL:-}
+    SUPABASE_JWT_ISSUER: ${SUPABASE_JWT_ISSUER:-}
+  healthcheck:
+    test: ['CMD-SHELL', 'wget -qO- http://localhost:$$PORT/health || exit 1']
+    interval: 10s
+    timeout: 3s
+    retries: 5
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ridefix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      SERVICE_DB_PASSWORD: ${SERVICE_DB_PASSWORD:?Set SERVICE_DB_PASSWORD in .env}
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  kong:
+    image: kong:3.9
+    environment:
+      KONG_DATABASE: 'off'
+      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+    volumes:
+      - ./infra/kong:/kong:ro
+    ports:
+      - '${KONG_PROXY_PORT:-8000}:8000'
+      # Admin API only on your own laptop, never on the network.
+      - '127.0.0.1:${KONG_ADMIN_PORT:-8001}:8001'
+    healthcheck:
+      test: ['CMD', 'kong', 'health']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  request-service:
+    <<: *service
+    build:
+      {
+        context: .,
+        dockerfile: infra/docker/service.Dockerfile,
+        args: { SERVICE: request-service },
+      }
+    environment:
+      <<: *service-env
+      PORT: 4001
+      REQUEST_SERVICE_PORT: 4001
+      REQUEST_DB_URL: postgres://request_svc:${SERVICE_DB_PASSWORD}@postgres:5432/request_db
+
+  matching-service:
+    <<: *service
+    build:
+      {
+        context: .,
+        dockerfile: infra/docker/service.Dockerfile,
+        args: { SERVICE: matching-service },
+      }
+    environment:
+      <<: *service-env
+      PORT: 4002
+      MATCHING_SERVICE_PORT: 4002
+      MATCHING_DB_URL: postgres://matching_svc:${SERVICE_DB_PASSWORD}@postgres:5432/matching_db
+      MAPS_PROVIDER: ${MAPS_PROVIDER:-mock}
+      GOOGLE_MAPS_SERVER_API_KEY: ${GOOGLE_MAPS_SERVER_API_KEY:-}
+
+  bidding-service:
+    <<: *service
+    build:
+      {
+        context: .,
+        dockerfile: infra/docker/service.Dockerfile,
+        args: { SERVICE: bidding-service },
+      }
+    environment:
+      <<: *service-env
+      PORT: 4003
+      BIDDING_SERVICE_PORT: 4003
+      BIDDING_DB_URL: postgres://bidding_svc:${SERVICE_DB_PASSWORD}@postgres:5432/bidding_db
+
+  tracking-service:
+    <<: *service
+    build:
+      {
+        context: .,
+        dockerfile: infra/docker/service.Dockerfile,
+        args: { SERVICE: tracking-service },
+      }
+    environment:
+      <<: *service-env
+      PORT: 4004
+      TRACKING_SERVICE_PORT: 4004
+      TRACKING_DB_URL: postgres://tracking_svc:${SERVICE_DB_PASSWORD}@postgres:5432/tracking_db
+
+  payment-service:
+    <<: *service
+    build:
+      {
+        context: .,
+        dockerfile: infra/docker/service.Dockerfile,
+        args: { SERVICE: payment-service },
+      }
+    environment:
+      <<: *service-env
+      PORT: 4005
+      PAYMENT_SERVICE_PORT: 4005
+      PAYMENT_DB_URL: postgres://payment_svc:${SERVICE_DB_PASSWORD}@postgres:5432/payment_db
+      PAYHERE_MODE: ${PAYHERE_MODE:-sandbox}
+      PAYHERE_MERCHANT_ID: ${PAYHERE_MERCHANT_ID:-}
+      PAYHERE_MERCHANT_SECRET: ${PAYHERE_MERCHANT_SECRET:-}
+      PAYHERE_NOTIFY_URL: ${PAYHERE_NOTIFY_URL:-}
+
+  notification-service:
+    <<: *service
+    build:
+      {
+        context: .,
+        dockerfile: infra/docker/service.Dockerfile,
+        args: { SERVICE: notification-service },
+      }
+    environment:
+      <<: *service-env
+      PORT: 4006
+      NOTIFICATION_SERVICE_PORT: 4006
+      NOTIFICATION_DB_URL: postgres://notification_svc:${SERVICE_DB_PASSWORD}@postgres:5432/notification_db
+      PUSH_PROVIDER: ${PUSH_PROVIDER:-mock}
+
+  # ---------- optional: only with `--profile optional` ----------
+  redis:
+    image: redis:7-alpine
+    profiles: [optional]
+    ports: ['127.0.0.1:6379:6379']
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    profiles: [optional]
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-ridefix}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-change-me-locally}
+    ports:
+      - '127.0.0.1:5672:5672'
+      - '127.0.0.1:15672:15672' # management UI
+
+volumes:
+  pgdata:
