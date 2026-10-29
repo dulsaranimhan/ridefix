@@ -2,7 +2,7 @@
   "name": "matching-service",
   "version": "0.0.0",
   "private": true,
-  "description": "Finds nearby eligible providers with PostGIS, then road distance and ETA from Google Maps",
+  "description": "Provides OSRM road distance and ETA to support provider matching",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
