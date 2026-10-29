@@ -229,54 +229,6 @@ export function buildApp() {
         throw new HttpError(400, 'invalid_request_id', 'A valid request ID UUID is required');
       }
 
-      const result = await pool.query(
-        `UPDATE requests
-     SET status = 'Cancelled',
-         updated_at = NOW()
-     WHERE id = $1
-        AND status IN ('Created', 'Matching', 'Open for bids')
-     RETURNING
-       id,
-       driver_id AS "driverId",
-       vehicle_id AS "vehicleId",
-       service_type AS "serviceType",
-       problem_description AS "problemDescription",
-       location_latitude AS "locationLatitude",
-       location_longitude AS "locationLongitude",
-       location_address AS "locationAddress",
-       status,
-       created_at AS "createdAt",
-       updated_at AS "updatedAt"`,
-        [id],
-      );
-
-      if (result.rows.length === 0) {
-        const existing = await pool.query('SELECT status FROM requests WHERE id = $1', [id]);
-
-        if (existing.rows.length === 0) {
-          throw new HttpError(404, 'request_not_found', 'Request not found');
-        }
-
-        throw new HttpError(
-          409,
-          'request_cannot_be_cancelled',
-          `A request with status "${existing.rows[0].status}" cannot be cancelled`,
-        );
-      }
-
-      res.status(200).json({ request: result.rows[0] });
-    });
-
-    app.post('/requests/:id/cancel', async (req: Request, res: Response) => {
-      const { id } = req.params;
-
-      if (
-        typeof id !== 'string' ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
-      ) {
-        throw new HttpError(400, 'invalid_request_id', 'A valid request ID UUID is required');
-      }
-
       const existing = await pool.query('SELECT status FROM requests WHERE id = $1', [id]);
 
       if (existing.rows.length === 0) {
