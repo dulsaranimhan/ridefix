@@ -15,8 +15,10 @@ Architecture reference: **RideFix_Architecture_Design.pdf**. Short summary:
 | --------- | ----------------------------------------------------- | ----------- |
 | 1         | Inspect architecture PDF, list gaps                   | Done        |
 | 2         | Monorepo, shared TypeScript config, env example, docs | Done        |
-| 3         | App shells + six service shells with health endpoints | Next        |
-| 4-10      | See [docs/milestones.md](docs/milestones.md)          | Not started |
+| 3         | App shells + six service shells with health endpoints | Done        |
+| 4         | Docker Compose, Kong, and service databases           | Done        |
+| 5         | API contracts, event formats, ownership, transitions  | In progress |
+| 6-10      | See [docs/milestones.md](docs/milestones.md)          | See roadmap |
 
 ## Repository layout
 

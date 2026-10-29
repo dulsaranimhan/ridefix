@@ -1,0 +1,104 @@
+openapi: 3.1.0
+info:
+  title: RideFix Payment Service API
+  version: 0.1.0
+  description: >-
+    Current fail-closed checkout and ePay notification validation endpoints. Checkout creation,
+    payment persistence, duplicate detection, idempotency, and booking confirmation are unavailable
+    until their authoritative cross-service contracts are approved and implemented.
+servers:
+  - url: http://localhost:4005
+paths:
+  /payments/checkout:
+    post:
+      operationId: createCheckout
+      summary: Request a hosted checkout
+      description: >-
+        Internal endpoint. The current implementation validates the request but returns 503 because
+        no authoritative order and payable amount source is integrated. It never creates checkout HTML.
+      parameters:
+        - name: x-ridefix-internal-key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckoutRequest' }
+      responses:
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /payments/epay/notify:
+    post:
+      operationId: receiveEpayNotification
+      summary: Receive and validate an ePay server notification
+      description: >-
+        A valid signature is not sufficient to confirm payment. Until persistence, idempotency, and
+        Request Service confirmation are implemented, every valid notification returns 503 and is
+        not acknowledged as processed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EpayNotification' }
+      responses:
+        '400': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: Validation, authentication, configuration, or unavailable dependency error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    CheckoutRequest:
+      type: object
+      required: [orderId, amount, customer]
+      properties:
+        orderId: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$' }
+        amount:
+          allOf:
+            - type: string
+              pattern: '^(?:0|[1-9][0-9]{0,7})\.[0-9]{2}$'
+            - not: { const: '0.00' }
+        currency: { type: string, pattern: '^[A-Za-z]{3}$', default: LKR }
+        description: { type: string }
+        customer:
+          type: object
+          required: [name, email, phone, address, city, state, zip]
+          properties:
+            name: { type: string, minLength: 1 }
+            email: { type: string, format: email }
+            phone: { type: string, minLength: 1 }
+            address: { type: string, minLength: 1 }
+            city: { type: string, minLength: 1 }
+            state: { type: string, minLength: 1 }
+            zip: { type: string, minLength: 1 }
+            country: { type: string, default: LK }
+    EpayNotification:
+      type: object
+      required: [merchantId, orderId, amount, currency, status, hash]
+      properties:
+        merchantId: { type: string }
+        orderId: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$' }
+        amount:
+          allOf:
+            - type: string
+              pattern: '^(?:0|[1-9][0-9]{0,7})\.[0-9]{2}$'
+            - not: { const: '0.00' }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        status: { type: string, enum: [SUCCESS, FAILURE] }
+        hash: { type: string, pattern: '^[A-Fa-f0-9]{32}$' }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }

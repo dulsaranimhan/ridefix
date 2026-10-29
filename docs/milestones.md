@@ -6,7 +6,7 @@
 | 2   | pnpm/Turborepo monorepo, shared TypeScript config, env examples, docs          | Done        |
 | 3   | Three client app shells and six service shells with health endpoints           | Done        |
 | 4   | Docker Compose: Kong + PostgreSQL/PostGIS; Redis and RabbitMQ optional profile | Done        |
-| 5   | API contracts, event formats, database ownership, status transitions           | Not started |
+| 5   | API contracts, event formats, database ownership, status transitions           | In progress |
 | 6   | End-to-end vertical slice (sign in -> request -> bids -> pay -> track -> done) | Not started |
 | 7   | Remaining Driver, Provider and Admin screens wired to the APIs                 | Not started |
 | 8   | Maps, notifications and payment integrations (sandbox)                         | In progress |
@@ -48,7 +48,15 @@
 - The mobile app config now points at OpenStreetMap raster tiles and includes visible attribution
   text. A map screen is not implemented yet. OSM's community tile server is best-effort and subject
   to its usage policy; it is not a production tile hosting commitment.
-- Payment Service creates an ePay hosted-checkout form and verifies the ePay notification hash.
-  Payment/booking persistence and idempotency are still pending, so this is not a complete booking
-  payment flow yet. Sandbox merchant credentials and a public HTTPS notification URL are required
-  to exercise it end-to-end.
+- Payment Service validates checkout requests and ePay notification hashes, but currently fails
+  closed: it creates no hosted-checkout form and acknowledges no valid notification. Payment/booking
+  persistence, idempotency, and booking confirmation remain blocked on approved architecture
+  contracts. Sandbox merchant credentials and a public HTTPS notification URL will be needed for
+  end-to-end testing after implementation.
+
+## Milestone 5 progress
+
+- Added current OpenAPI contracts for the implemented Request, Matching route, and fail-closed Payment endpoints. Bidding, Tracking, and Notification business APIs remain unimplemented and are not assigned invented endpoint schemas.
+- Added an event catalog that records accepted event intents while marking payloads, versioning, and delivery guarantees as undecided.
+- Added data-ownership boundaries and the Request Service transition graph. Unresolved ownership proposals remain proposals; no database schema was created.
+- Remaining work: resolve auth token verification, provider data ownership, the booking/order-to-bid relationship, payment confirmation API, event payloads, and delivery/idempotency rules before implementing those workflows.
