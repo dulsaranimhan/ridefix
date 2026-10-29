@@ -1,7 +1,7 @@
-
 import { createServiceApp, HttpError } from '@ridefix/service-kit';
 import type { Request, Response } from 'express';
 import { pool } from './db';
+import { canTransitionRequestStatus } from './status-transitions';
 
 export const SERVICE_NAME = 'request-service';
 
@@ -41,9 +41,7 @@ export function buildApp() {
 
       if (
         typeof driverId !== 'string' ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          driverId,
-        )
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(driverId)
       ) {
         throw new HttpError(400, 'invalid_driver_id', 'A valid driverId UUID is required');
       }
@@ -59,10 +57,7 @@ export function buildApp() {
         throw new HttpError(400, 'invalid_vehicle_id', 'vehicleId must be a valid UUID');
       }
 
-      if (
-        typeof serviceType !== 'string' ||
-        !SERVICE_TYPES.includes(serviceType as ServiceType)
-      ) {
+      if (typeof serviceType !== 'string' || !SERVICE_TYPES.includes(serviceType as ServiceType)) {
         throw new HttpError(400, 'invalid_service_type', 'A supported serviceType is required');
       }
 
@@ -157,14 +152,14 @@ export function buildApp() {
       const { id } = req.params;
 
       if (
-      typeof id !== 'string' ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+        typeof id !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
       ) {
-      throw new HttpError(400, 'invalid_request_id', 'A valid request ID UUID is required');
-    }
+        throw new HttpError(400, 'invalid_request_id', 'A valid request ID UUID is required');
+      }
 
-  const result = await pool.query(
-    `SELECT
+      const result = await pool.query(
+        `SELECT
        id,
        driver_id AS "driverId",
        vehicle_id AS "vehicleId",
@@ -178,31 +173,32 @@ export function buildApp() {
        updated_at AS "updatedAt"
      FROM requests
      WHERE id = $1`,
-    [id],
-  );
+        [id],
+      );
 
-  if (result.rows.length === 0) {
-    throw new HttpError(404, 'request_not_found', 'Request not found');
-  }
+      if (result.rows.length === 0) {
+        throw new HttpError(404, 'request_not_found', 'Request not found');
+      }
 
-  res.status(200).json({ request: result.rows[0] });
-});
+      res.status(200).json({ request: result.rows[0] });
+    });
 
+    app.get('/requests', async (req: Request, res: Response) => {
+      const driverId = req.query.driverId;
 
-app.get('/requests', async (req: Request, res: Response) => {
-  const driverId = req.query.driverId;
+      if (
+        typeof driverId !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(driverId)
+      ) {
+        throw new HttpError(
+          400,
+          'invalid_driver_id',
+          'A valid driverId query parameter is required',
+        );
+      }
 
-  if (
-    typeof driverId !== 'string' ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      driverId,
-    )
-  ) {
-    throw new HttpError(400, 'invalid_driver_id', 'A valid driverId query parameter is required');
-  }
-
-  const result = await pool.query(
-    `SELECT
+      const result = await pool.query(
+        `SELECT
        id,
        driver_id AS "driverId",
        vehicle_id AS "vehicleId",
@@ -217,29 +213,28 @@ app.get('/requests', async (req: Request, res: Response) => {
      FROM requests
      WHERE driver_id = $1
      ORDER BY created_at DESC`,
-    [driverId],
-  );
+        [driverId],
+      );
 
-  res.status(200).json({ requests: result.rows });
-});
+      res.status(200).json({ requests: result.rows });
+    });
 
+    app.post('/requests/:id/cancel', async (req: Request, res: Response) => {
+      const { id } = req.params;
 
-app.post('/requests/:id/cancel', async (req: Request, res: Response) => {
-  const { id } = req.params;
+      if (
+        typeof id !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+      ) {
+        throw new HttpError(400, 'invalid_request_id', 'A valid request ID UUID is required');
+      }
 
-  if (
-    typeof id !== 'string' ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
-  ) {
-    throw new HttpError(400, 'invalid_request_id', 'A valid request ID UUID is required');
-  }
-
-  const result = await pool.query(
-    `UPDATE requests
+      const result = await pool.query(
+        `UPDATE requests
      SET status = 'Cancelled',
          updated_at = NOW()
      WHERE id = $1
-       AND status IN ('Created', 'Matching', 'Open for bids')
+        AND status IN ('Created', 'Matching', 'Open for bids')
      RETURNING
        id,
        driver_id AS "driverId",
@@ -252,28 +247,88 @@ app.post('/requests/:id/cancel', async (req: Request, res: Response) => {
        status,
        created_at AS "createdAt",
        updated_at AS "updatedAt"`,
-    [id],
-  );
+        [id],
+      );
 
-  if (result.rows.length === 0) {
-    const existing = await pool.query(
-      'SELECT status FROM requests WHERE id = $1',
-      [id],
-    );
+      if (result.rows.length === 0) {
+        const existing = await pool.query('SELECT status FROM requests WHERE id = $1', [id]);
 
-    if (existing.rows.length === 0) {
-      throw new HttpError(404, 'request_not_found', 'Request not found');
-    }
+        if (existing.rows.length === 0) {
+          throw new HttpError(404, 'request_not_found', 'Request not found');
+        }
 
-    throw new HttpError(
-      409,
-      'request_cannot_be_cancelled',
-      `A request with status "${existing.rows[0].status}" cannot be cancelled`,
-    );
-  }
+        throw new HttpError(
+          409,
+          'request_cannot_be_cancelled',
+          `A request with status "${existing.rows[0].status}" cannot be cancelled`,
+        );
+      }
 
-  res.status(200).json({ request: result.rows[0] });
-});
+      res.status(200).json({ request: result.rows[0] });
+    });
 
+    app.post('/requests/:id/cancel', async (req: Request, res: Response) => {
+      const { id } = req.params;
+
+      if (
+        typeof id !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+      ) {
+        throw new HttpError(400, 'invalid_request_id', 'A valid request ID UUID is required');
+      }
+
+      const existing = await pool.query('SELECT status FROM requests WHERE id = $1', [id]);
+
+      if (existing.rows.length === 0) {
+        throw new HttpError(404, 'request_not_found', 'Request not found');
+      }
+
+      const currentStatus = existing.rows[0].status;
+
+      if (
+        typeof currentStatus !== 'string' ||
+        !canTransitionRequestStatus(
+          currentStatus as import('./status-transitions').RequestStatus,
+          'Cancelled',
+        )
+      ) {
+        throw new HttpError(
+          409,
+          'request_cannot_be_cancelled',
+          `A request with status "${currentStatus}" cannot be cancelled`,
+        );
+      }
+
+      const result = await pool.query(
+        `UPDATE requests
+         SET status = 'Cancelled',
+             updated_at = NOW()
+         WHERE id = $1
+           AND status = $2
+         RETURNING
+           id,
+           driver_id AS "driverId",
+           vehicle_id AS "vehicleId",
+           service_type AS "serviceType",
+           problem_description AS "problemDescription",
+           location_latitude AS "locationLatitude",
+           location_longitude AS "locationLongitude",
+           location_address AS "locationAddress",
+           status,
+           created_at AS "createdAt",
+           updated_at AS "updatedAt"`,
+        [id, currentStatus],
+      );
+
+      if (result.rows.length === 0) {
+        throw new HttpError(
+          409,
+          'request_status_changed',
+          'Request status changed while cancellation was being processed. Please retry.',
+        );
+      }
+
+      res.status(200).json({ request: result.rows[0] });
+    });
   });
 }

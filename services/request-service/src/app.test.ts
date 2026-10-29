@@ -1,4 +1,3 @@
-
 import request from 'supertest';
 import { buildApp, SERVICE_NAME } from './app';
 
@@ -95,80 +94,83 @@ describe(SERVICE_NAME, () => {
   });
 
   it('GET /requests/:id returns a request', async () => {
-  mockQuery.mockResolvedValueOnce({
-    rows: [{ id: '650e8400-e29b-41d4-a716-446655440000', status: 'Created' }],
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: '650e8400-e29b-41d4-a716-446655440000', status: 'Created' }],
+    });
+
+    const res = await request(buildApp()).get('/requests/650e8400-e29b-41d4-a716-446655440000');
+
+    expect(res.status).toBe(200);
+    expect(res.body.request.status).toBe('Created');
   });
 
-  const res = await request(buildApp()).get(
-    '/requests/650e8400-e29b-41d4-a716-446655440000',
-  );
+  it('GET /requests/:id returns 404 when not found', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
 
-  expect(res.status).toBe(200);
-  expect(res.body.request.status).toBe('Created');
-});
+    const res = await request(buildApp()).get('/requests/650e8400-e29b-41d4-a716-446655440000');
 
-it('GET /requests/:id returns 404 when not found', async () => {
-  mockQuery.mockResolvedValueOnce({ rows: [] });
-
-  const res = await request(buildApp()).get(
-    '/requests/650e8400-e29b-41d4-a716-446655440000',
-  );
-
-  expect(res.status).toBe(404);
-  expect(res.body.error.code).toBe('request_not_found');
-});
-
-it('GET /requests lists a driver’s requests', async () => {
-  mockQuery.mockResolvedValueOnce({
-    rows: [{ id: '650e8400-e29b-41d4-a716-446655440000', status: 'Created' }],
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('request_not_found');
   });
 
-  const res = await request(buildApp()).get(
-    '/requests?driverId=550e8400-e29b-41d4-a716-446655440000',
-  );
+  it('GET /requests lists a driver’s requests', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: '650e8400-e29b-41d4-a716-446655440000', status: 'Created' }],
+    });
 
-  expect(res.status).toBe(200);
-  expect(res.body.requests).toHaveLength(1);
-});
+    const res = await request(buildApp()).get(
+      '/requests?driverId=550e8400-e29b-41d4-a716-446655440000',
+    );
 
-it('POST /requests/:id/cancel cancels an eligible request', async () => {
-  mockQuery.mockResolvedValueOnce({
-    rows: [{ id: '650e8400-e29b-41d4-a716-446655440000', status: 'Cancelled' }],
+    expect(res.status).toBe(200);
+    expect(res.body.requests).toHaveLength(1);
   });
 
-  const res = await request(buildApp()).post(
-    '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
-  );
+  it('POST /requests/:id/cancel cancels an eligible request', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: '650e8400-e29b-41d4-a716-446655440000', status: 'Cancelled' }],
+    });
 
-  expect(res.status).toBe(200);
-  expect(res.body.request.status).toBe('Cancelled');
-});
+    const res = await request(buildApp()).post(
+      '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
+    );
 
-it('POST /requests/:id/cancel returns 404 when request does not exist', async () => {
-  mockQuery
-    .mockResolvedValueOnce({ rows: [] })
-    .mockResolvedValueOnce({ rows: [] });
+    expect(res.status).toBe(200);
+    expect(res.body.request.status).toBe('Cancelled');
+  });
 
-  const res = await request(buildApp()).post(
-    '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
-  );
+  it('POST /requests/:id/cancel returns 404 when request does not exist', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
-  expect(res.status).toBe(404);
-  expect(res.body.error.code).toBe('request_not_found');
-});
-it('returns 409 when a request cannot be cancelled', async () => {
-  mockQuery
-    .mockResolvedValueOnce({ rows: [] })
-    .mockResolvedValueOnce({ rows: [{ status: 'Cancelled' }] });
+    const res = await request(buildApp()).post(
+      '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
+    );
 
-  const res = await request(buildApp()).post(
-    '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
-  );
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('request_not_found');
+  });
+  it('returns 409 when a request cannot be cancelled', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ status: 'Cancelled' }] });
 
-  expect(res.status).toBe(409);
-  expect(res.body.error.code).toBe('request_cannot_be_cancelled');
-});
+    const res = await request(buildApp()).post(
+      '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
+    );
 
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('request_cannot_be_cancelled');
+  });
+  it('returns 409 when a completed request is cancelled', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ status: 'Completed' }] });
 
+    const res = await request(buildApp()).post(
+      '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
+    );
 
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('request_cannot_be_cancelled');
+  });
 });
