@@ -1,7 +1,7 @@
 import { createServiceApp, HttpError } from '@ridefix/service-kit';
 import type { Request, Response } from 'express';
 import { pool } from './db';
-import { canTransitionRequestStatus } from './status-transitions';
+import { REQUEST_STATUSES, canTransitionRequestStatus } from './status-transitions';
 
 export const SERVICE_NAME = 'request-service';
 
@@ -229,34 +229,12 @@ export function buildApp() {
         throw new HttpError(400, 'invalid_request_id', 'A valid request ID UUID is required');
       }
 
-      const existing = await pool.query('SELECT status FROM requests WHERE id = $1', [id]);
-
-      if (existing.rows.length === 0) {
-        throw new HttpError(404, 'request_not_found', 'Request not found');
-      }
-
-      const currentStatus = existing.rows[0].status;
-
-      if (
-        typeof currentStatus !== 'string' ||
-        !canTransitionRequestStatus(
-          currentStatus as import('./status-transitions').RequestStatus,
-          'Cancelled',
-        )
-      ) {
-        throw new HttpError(
-          409,
-          'request_cannot_be_cancelled',
-          `A request with status "${currentStatus}" cannot be cancelled`,
-        );
-      }
-
       const result = await pool.query(
         `UPDATE requests
          SET status = 'Cancelled',
              updated_at = NOW()
          WHERE id = $1
-           AND status = $2
+           AND status = ANY($2::varchar[])
          RETURNING
            id,
            driver_id AS "driverId",
@@ -269,14 +247,19 @@ export function buildApp() {
            status,
            created_at AS "createdAt",
            updated_at AS "updatedAt"`,
-        [id, currentStatus],
+        [id, REQUEST_STATUSES.filter((status) => canTransitionRequestStatus(status, 'Cancelled'))],
       );
 
       if (result.rows.length === 0) {
+        const existing = await pool.query('SELECT status FROM requests WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+          throw new HttpError(404, 'request_not_found', 'Request not found');
+        }
+        const currentStatus = existing.rows[0].status;
         throw new HttpError(
           409,
-          'request_status_changed',
-          'Request status changed while cancellation was being processed. Please retry.',
+          'request_cannot_be_cancelled',
+          `A request with status "${currentStatus}" cannot be cancelled`,
         );
       }
 

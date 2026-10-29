@@ -127,7 +127,7 @@ describe(SERVICE_NAME, () => {
   });
 
   it('POST /requests/:id/cancel cancels an eligible request', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ status: 'Created' }] }).mockResolvedValueOnce({
+    mockQuery.mockResolvedValueOnce({
       rows: [{ id: '650e8400-e29b-41d4-a716-446655440000', status: 'Cancelled' }],
     });
 
@@ -137,12 +137,13 @@ describe(SERVICE_NAME, () => {
 
     expect(res.status).toBe(200);
     expect(res.body.request.status).toBe('Cancelled');
-    expect(mockQuery).toHaveBeenCalledTimes(2);
-    expect(mockQuery.mock.calls[1][1]).toEqual(['650e8400-e29b-41d4-a716-446655440000', 'Created']);
+    expect(mockQuery).toHaveBeenCalledTimes(1);
+    expect(mockQuery.mock.calls[0][1][0]).toBe('650e8400-e29b-41d4-a716-446655440000');
+    expect(mockQuery.mock.calls[0][1][1]).toContain('Created');
   });
 
   it('POST /requests/:id/cancel returns 404 when request does not exist', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] });
+    mockQuery.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
 
     const res = await request(buildApp()).post(
       '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
@@ -150,11 +151,13 @@ describe(SERVICE_NAME, () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe('request_not_found');
-    expect(mockQuery).toHaveBeenCalledTimes(1);
+    expect(mockQuery).toHaveBeenCalledTimes(2);
   });
 
   it('returns 409 when a request cannot be cancelled', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ status: 'Cancelled' }] });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ status: 'Cancelled' }] });
 
     const res = await request(buildApp()).post(
       '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
@@ -162,11 +165,13 @@ describe(SERVICE_NAME, () => {
 
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('request_cannot_be_cancelled');
-    expect(mockQuery).toHaveBeenCalledTimes(1);
+    expect(mockQuery).toHaveBeenCalledTimes(2);
   });
 
   it('returns 409 when a completed request is cancelled', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ status: 'Completed' }] });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ status: 'Completed' }] });
 
     const res = await request(buildApp()).post(
       '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
@@ -174,20 +179,20 @@ describe(SERVICE_NAME, () => {
 
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('request_cannot_be_cancelled');
-    expect(mockQuery).toHaveBeenCalledTimes(1);
+    expect(mockQuery).toHaveBeenCalledTimes(2);
   });
 
-  it('returns 409 when the request status changes before cancellation updates it', async () => {
+  it('returns 409 when a concurrent status change makes cancellation ineligible', async () => {
     mockQuery
-      .mockResolvedValueOnce({ rows: [{ status: 'Created' }] })
-      .mockResolvedValueOnce({ rows: [] });
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ status: 'Completed' }] });
 
     const res = await request(buildApp()).post(
       '/requests/650e8400-e29b-41d4-a716-446655440000/cancel',
     );
 
     expect(res.status).toBe(409);
-    expect(res.body.error.code).toBe('request_status_changed');
+    expect(res.body.error.code).toBe('request_cannot_be_cancelled');
     expect(mockQuery).toHaveBeenCalledTimes(2);
   });
 });
