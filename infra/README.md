@@ -1,10 +1,14 @@
-# infra
 
-Local infrastructure (milestone 4):
+#!/bin/sh
+# Initializes PostGIS in the shared RideFix database.
+# POSTGRES_DB creates ridefix_db during first-time volume initialization.
+set -eu
 
-- `docker-compose.yml` - Kong, PostgreSQL + PostGIS, the six services.
-- `docker compose --profile optional up` - also starts Redis and RabbitMQ.
-- `kong/kong.yml` - Kong declarative config (routes, JWT check, rate limits, logs).
-- `postgres/` - init script that creates one database and one login per service.
+echo "Enabling PostGIS in the shared RideFix database: ${POSTGRES_DB}"
 
-No Kubernetes. This is for local development and demos.
+psql -v ON_ERROR_STOP=1 \
+  --username "$POSTGRES_USER" \
+  --dbname "$POSTGRES_DB" \
+  -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+echo "Shared RideFix database initialized successfully."

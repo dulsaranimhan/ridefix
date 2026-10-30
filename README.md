@@ -1,7 +1,8 @@
 # RideFix
 
 RideFix connects drivers who need roadside help or garage services with nearby providers.
-Drivers create a request, compare bids, accept one, pay with PayHere and track the provider live.
+Drivers create requests, compare bids, accept one, and track providers live. The intended payment
+flow uses ePay checkout, though payment and booking persistence are not yet complete.
 Providers receive requests, send bids, manage jobs and share their location. Admins manage users,
 providers, bookings, payments and disputes.
 
@@ -31,11 +32,11 @@ docs/        architecture summary, decision log, open questions, milestones
 ## Tech stack
 
 - **Clients:** React Native + TypeScript (driver, provider), React + TypeScript (admin)
-- **Auth:** Supabase Auth (no custom auth service)
+- **Auth:** self-hosted auth service (planned; not in this repository yet)
 - **Gateway:** Kong Gateway (configuration only)
 - **Services:** six Node.js + TypeScript services, each with its own PostgreSQL database
   (PostGIS for Matching)
-- **Integrations:** Google Maps Platform, PayHere (sandbox), Firebase Cloud Messaging
+- **Integrations:** OpenStreetMap tiles, OSRM routing, ePay (sandbox), Firebase Cloud Messaging
 - **Optional:** Redis, RabbitMQ (only when needed)
 - **Tooling:** pnpm workspaces, Turborepo, TypeScript 5.9, Prettier, Jest + Supertest
 
@@ -75,11 +76,11 @@ Run one workspace with a filter, for example `pnpm --filter request-service dev`
 
 ## Security rules (short version)
 
-- Supabase issues the JWT, Kong verifies it, and every service still checks role and ownership.
+- Auth implementation is pending; once present, every service must check role and ownership.
 - Never trust a user ID or role sent in a request body.
 - Secrets live in `.env` (git-ignored). Only `.env.example` with placeholders is committed.
-- No service-role keys, PayHere secrets or FCM credentials in mobile/web apps.
-- A payment is successful only after PayHere's server notification signature is verified.
+- No payment-provider secrets or FCM credentials in mobile/web apps.
+- An ePay redirect alone does not confirm a payment; only a verified server notification can.
 - Live location is shared only between the driver and provider of an active booking.
 
 ## Docs

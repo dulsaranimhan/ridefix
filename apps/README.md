@@ -6,4 +6,5 @@ Client apps (added in milestone 3):
 - `provider-mobile` - React Native + TypeScript. Availability, nearby requests, bids, jobs, location sharing.
 - `admin-web` - React + TypeScript. Users/providers, bookings/payments, disputes.
 
-Apps only ever hold **client-safe** values (Supabase URL + anon key, Kong URL, restricted Maps key).
+Apps only hold public values such as the Kong URL and OpenStreetMap tile URL. Payment credentials
+and database passwords must stay on the server.
