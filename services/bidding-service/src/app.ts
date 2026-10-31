@@ -1,9 +1,14 @@
 import { createServiceApp } from '@ridefix/service-kit';
+import { Router } from 'express';
+import bidRoutes from './routes/bidRoutes';
 
 export const SERVICE_NAME = 'bidding-service';
 
-// Owns bid submission, validation, acceptance, rejection and expiry.
-// Routes are added in milestone 6 (vertical slice).
 export function buildApp() {
-  return createServiceApp({ name: SERVICE_NAME });
+  return createServiceApp(
+    { name: SERVICE_NAME },
+    (app) => {
+      app.use('/bids', bidRoutes);
+    }
+  );
 }
