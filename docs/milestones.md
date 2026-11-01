@@ -7,7 +7,7 @@
 | 3   | Three client app shells and six service shells with health endpoints           | Done        |
 | 4   | Docker Compose: Kong + PostgreSQL/PostGIS; Redis and RabbitMQ optional profile | Done        |
 | 5   | API contracts, event formats, database ownership, status transitions           | In progress |
-| 6   | End-to-end vertical slice (sign in -> request -> bids -> pay -> track -> done) | Not started |
+| 6   | End-to-end vertical slice (request -> bids -> pay -> track -> done; sign-in optional) | Not started |
 | 7   | Remaining Driver, Provider and Admin screens wired to the APIs                 | Not started |
 | 8   | Maps, notifications and payment integrations (sandbox)                         | In progress |
 | 9   | Service/API tests and end-to-end checks with mocks                             | Not started |
@@ -36,8 +36,8 @@
 - Kong (DB-less) routes `/requests`, `/matching`, `/bids`, `/tracking`, `/payments`,
   `/notifications`, plus `GET /health/<service>`. Plugins: rate limiting, correlation ID
   (`X-Request-ID`), JSON access log, CORS for Admin Web.
-- **Kong does not check JWTs yet.** Add verification after the self-hosted auth service and token
-  format are implemented.
+- **Kong does not check JWTs yet.** Define and add Supabase JWT verification after the MVP flow is
+  implemented; sign-in remains optional for Sprint 1 evaluation.
 - Redis and RabbitMQ start only with `--profile optional`.
 
 ## Milestone 8 progress
@@ -60,3 +60,10 @@
 - Added an event catalog that records accepted event intents while marking payloads, versioning, and delivery guarantees as undecided.
 - Added data-ownership boundaries and the Request Service transition graph. Unresolved ownership proposals remain proposals; no database schema was created.
 - Remaining work: resolve auth token verification, provider data ownership, the booking/order-to-bid relationship, payment confirmation API, event payloads, and delivery/idempotency rules before implementing those workflows.
+
+## Sprint 1 auth decision
+
+- Driver mobile uses optional Supabase email/password sign-in from Profile. Core tabs remain available
+  without an account. Self-hosted auth migration is deferred until after evaluation.
+- The client integration does not add backend authorization. Kong and services must verify Supabase
+  JWTs before protected workflows rely on the signed-in identity.

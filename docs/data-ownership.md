@@ -25,7 +25,7 @@ create tables or code until the owners approve them.
 | Provider profiles, offered services, and availability | Matching Service ownership is proposed.                                                                                                                                       | Proposal in `open-questions.md`; no schema.                               |
 | Request photos                                        | Object storage is proposed; Request Service would store references only.                                                                                                      | Storage choice is open.                                                   |
 | Booking aggregate / payment order mapping             | No authoritative contract identifies a booking record, links a selected bid to an order, or supplies the payable amount to Payment Service.                                   | Open; blocks safe checkout and booking confirmation.                      |
-| Identity and role claims                              | Auth is described as self-hosted in current decisions, while the architecture PDF describes Supabase. Signing method, issuer, claims, and verification keys remain undecided. | D2 says self-hosted auth is user-confirmed but pending; D19 remains open. |
+| Identity and role claims                              | Supabase Auth is used for the MVP; role claims and server-side JWT verification are still undecided. Self-hosted migration is deferred until after Sprint 1 evaluation. | D2 selects Supabase for MVP; D19 remains open. |
 
 A service may maintain a read-only copy of another service's data only after a specific synchronization
 contract is agreed. It must not query or write another service's database directly.

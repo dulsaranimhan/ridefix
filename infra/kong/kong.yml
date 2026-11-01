@@ -3,9 +3,8 @@
 # Clients call Kong on port 8000. Kong forwards each request to one of the six services by URL
 # path. Services are not published to the host in Docker Compose, so Kong is the only front door.
 #
-# NOT DONE YET: JWT verification. Add it after implementing the self-hosted auth service and
-# confirming its token signing method and claims. Until then Kong does NOT verify tokens, so this
-# setup is for local development only.
+# NOT DONE YET: JWT verification. Define Supabase JWT validation before protected MVP workflows
+# rely on identity. Until then Kong does NOT verify tokens, so this setup is for local development.
 _format_version: '3.0'
 
 services:

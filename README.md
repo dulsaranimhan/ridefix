@@ -34,7 +34,7 @@ docs/        architecture summary, decision log, open questions, milestones
 ## Tech stack
 
 - **Clients:** React Native + TypeScript (driver, provider), React + TypeScript (admin)
-- **Auth:** self-hosted auth service (planned; not in this repository yet)
+- **Auth:** Supabase Auth for the MVP; self-hosted auth migration is planned after Sprint 1 evaluation
 - **Gateway:** Kong Gateway (configuration only)
 - **Services:** six Node.js + TypeScript services, each with its own PostgreSQL database
   (PostGIS for Matching)
