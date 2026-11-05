@@ -33,3 +33,6 @@ service-account*.json
 .vscode/*
 !.vscode/extensions.json
 *.log
+
+ridefix-current.zip
+ridefix-project.zip

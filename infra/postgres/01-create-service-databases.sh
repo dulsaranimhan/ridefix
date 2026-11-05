@@ -4,7 +4,7 @@
 # so a service cannot read or write another service's tables (architecture rule 4).
 set -eu
 
-for svc in request matching bidding tracking payment notification; do
+for svc in request matching bidding tracking payment notification provider; do
   echo "Creating ${svc}_db owned by ${svc}_svc"
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres <<SQL
 CREATE ROLE ${svc}_svc LOGIN PASSWORD '${SERVICE_DB_PASSWORD}';
