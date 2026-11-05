@@ -1,7 +1,8 @@
 # RideFix
 
 RideFix connects drivers who need roadside help or garage services with nearby providers.
-Drivers create a request, compare bids, accept one, pay with PayHere and track the provider live.
+Drivers create requests, compare bids, accept one, and track providers live. The intended payment
+flow uses ePay checkout, though payment and booking persistence are not yet complete.
 Providers receive requests, send bids, manage jobs and share their location. Admins manage users,
 providers, bookings, payments and disputes.
 
@@ -14,8 +15,10 @@ Architecture reference: **RideFix_Architecture_Design.pdf**. Short summary:
 | --------- | ----------------------------------------------------- | ----------- |
 | 1         | Inspect architecture PDF, list gaps                   | Done        |
 | 2         | Monorepo, shared TypeScript config, env example, docs | Done        |
-| 3         | App shells + six service shells with health endpoints | Next        |
-| 4-10      | See [docs/milestones.md](docs/milestones.md)          | Not started |
+| 3         | App shells + six service shells with health endpoints | Done        |
+| 4         | Docker Compose, Kong, and service databases           | Done        |
+| 5         | API contracts, event formats, ownership, transitions  | In progress |
+| 6-10      | See [docs/milestones.md](docs/milestones.md)          | See roadmap |
 
 ## Repository layout
 
@@ -31,11 +34,11 @@ docs/        architecture summary, decision log, open questions, milestones
 ## Tech stack
 
 - **Clients:** React Native + TypeScript (driver, provider), React + TypeScript (admin)
-- **Auth:** Supabase Auth (no custom auth service)
+- **Auth:** Supabase Auth for the MVP; self-hosted auth migration is planned after Sprint 1 evaluation
 - **Gateway:** Kong Gateway (configuration only)
 - **Services:** six Node.js + TypeScript services, each with its own PostgreSQL database
   (PostGIS for Matching)
-- **Integrations:** Google Maps Platform, PayHere (sandbox), Firebase Cloud Messaging
+- **Integrations:** OpenStreetMap tiles, OSRM routing, ePay (sandbox), Firebase Cloud Messaging
 - **Optional:** Redis, RabbitMQ (only when needed)
 - **Tooling:** pnpm workspaces, Turborepo, TypeScript 5.9, Prettier, Jest + Supertest
 
@@ -75,16 +78,17 @@ Run one workspace with a filter, for example `pnpm --filter request-service dev`
 
 ## Security rules (short version)
 
-- Supabase issues the JWT, Kong verifies it, and every service still checks role and ownership.
+- Auth implementation is pending; once present, every service must check role and ownership.
 - Never trust a user ID or role sent in a request body.
 - Secrets live in `.env` (git-ignored). Only `.env.example` with placeholders is committed.
-- No service-role keys, PayHere secrets or FCM credentials in mobile/web apps.
-- A payment is successful only after PayHere's server notification signature is verified.
+- No payment-provider secrets or FCM credentials in mobile/web apps.
+- An ePay redirect alone does not confirm a payment; only a verified server notification can.
 - Live location is shared only between the driver and provider of an active booking.
 
 ## Docs
 
 - [Architecture summary](docs/architecture.md)
+- [Driver app and shared API guide](docs/driver-app-and-shared-api.md)
 - [Decision log](docs/decisions.md)
 - [Open questions and data-ownership gaps](docs/open-questions.md)
 - [Milestones](docs/milestones.md)

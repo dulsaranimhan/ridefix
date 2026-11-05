@@ -3,6 +3,9 @@ import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from '@ridefix/ui-tokens';
+import { DriverTabBar } from './src/components/parts';
+import { DriverDataProvider } from './src/lib/driver-data';
+import { ui } from './src/theme';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
@@ -15,8 +18,8 @@ const theme = {
   colors: {
     ...DefaultTheme.colors,
     primary: colors.accent,
-    background: colors.background,
-    card: colors.background,
+    background: ui.background,
+    card: ui.background,
     text: colors.text,
     border: colors.border,
   },
@@ -25,20 +28,19 @@ const theme = {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={theme}>
-        <Tab.Navigator
-          screenOptions={{
-            headerShown: false,
-            tabBarActiveTintColor: colors.accent,
-            tabBarInactiveTintColor: colors.textMuted,
-          }}
-        >
-          <Tab.Screen name="Home" component={HomeScreen} />
-          <Tab.Screen name="My Vehicles" component={VehiclesScreen} />
-          <Tab.Screen name="Notifications" component={NotificationsScreen} />
-          <Tab.Screen name="Profile" component={ProfileScreen} />
-        </Tab.Navigator>
-      </NavigationContainer>
+      <DriverDataProvider>
+        <NavigationContainer theme={theme}>
+          <Tab.Navigator
+            tabBar={(props) => <DriverTabBar {...props} />}
+            screenOptions={{ headerShown: false }}
+          >
+            <Tab.Screen name="Home" component={HomeScreen} />
+            <Tab.Screen name="My Vehicles" component={VehiclesScreen} />
+            <Tab.Screen name="Notifications" component={NotificationsScreen} />
+            <Tab.Screen name="Profile" component={ProfileScreen} />
+          </Tab.Navigator>
+        </NavigationContainer>
+      </DriverDataProvider>
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );

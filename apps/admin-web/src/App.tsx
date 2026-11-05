@@ -8,7 +8,7 @@ const sections = [
   {
     path: 'payments',
     label: 'Payments',
-    note: 'PayHere payments: pending, paid, failed, refunded.',
+    note: 'ePay payments: pending, paid, failed, refunded.',
   },
   { path: 'disputes', label: 'Disputes', note: 'Review a booking and its payment, then decide.' },
 ];

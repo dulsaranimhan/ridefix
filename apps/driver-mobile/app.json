@@ -7,6 +7,14 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "RideFix uses your location so a provider can find you."
+        }
+      ]
+    ],
     "ios": { "bundleIdentifier": "lk.ridefix.driver", "supportsTablet": false },
     "android": {
       "package": "lk.ridefix.driver",
