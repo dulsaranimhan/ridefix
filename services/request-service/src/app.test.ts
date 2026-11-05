@@ -55,6 +55,7 @@ describe(SERVICE_NAME, () => {
     expect(mockQuery.mock.calls[0][1]).toEqual([
       validRequest.driverId,
       null,
+      null,
       validRequest.serviceType,
       validRequest.problemDescription,
       validRequest.locationLatitude,

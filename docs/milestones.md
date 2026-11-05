@@ -7,7 +7,7 @@
 | 3   | Three client app shells and six service shells with health endpoints           | Done        |
 | 4   | Docker Compose: Kong + PostgreSQL/PostGIS; Redis and RabbitMQ optional profile | Done        |
 | 5   | API contracts, event formats, database ownership, status transitions           | In progress |
-| 6   | End-to-end vertical slice (request -> bids -> pay -> track -> done; sign-in optional) | Not started |
+| 6   | Driver request -> provider bids -> driver accepts -> work complete; cash only  | In progress |
 | 7   | Remaining Driver, Provider and Admin screens wired to the APIs                 | Not started |
 | 8   | Maps, notifications and payment integrations (sandbox)                         | In progress |
 | 9   | Service/API tests and end-to-end checks with mocks                             | Not started |
@@ -67,3 +67,6 @@
   without an account. Self-hosted auth migration is deferred until after evaluation.
 - The client integration does not add backend authorization. Kong and services must verify Supabase
   JWTs before protected workflows rely on the signed-in identity.
+- The first workflow uses bidding: providers submit bids, the driver accepts one, and the provider
+  updates the job through on-the-way, in-progress, and completed. Payment remains a placeholder and a
+  direct cash handoff for now.

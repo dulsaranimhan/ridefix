@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  title: RideFix Bidding Service API
+  version: 0.1.0
+  description: >-
+    Bid lifecycle API. Authentication is not implemented; driverId and providerId are accepted as
+    request data and are not authenticated identities. Do not expose this API to untrusted clients
+    until token verification and ownership checks are integrated. Payment is a placeholder, so
+    accepting a bid books the request directly.
+servers:
+  - url: http://localhost:8000
+    description: Through Kong. From another device, use the host's LAN IP.
+paths:
+  /bids:
+    post:
+      summary: Submit a bid on an open request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBid'
+      responses:
+        '201':
+          $ref: '#/components/responses/BidResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          description: The request is not open, or this provider already has an open bid on it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          $ref: '#/components/responses/Error'
+    get:
+      summary: List bids, newest first, up to 200
+      description: At least one filter is required.
+      parameters:
+        - name: requestId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: providerId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/BidStatus'
+      responses:
+        '200':
+          description: Matching bids
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bids]
+                properties:
+                  bids:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Bid'
+        '400':
+          $ref: '#/components/responses/Error'
+  /bids/{id}:
+    get:
+      summary: Read one bid
+      parameters:
+        - $ref: '#/components/parameters/BidId'
+      responses:
+        '200':
+          $ref: '#/components/responses/BidResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /bids/{id}/accept:
+    post:
+      summary: Driver accepts a bid
+      description: >-
+        Books the request through the Request Service, marks this bid Accepted, and marks every other
+        open bid on the request Rejected.
+      parameters:
+        - $ref: '#/components/parameters/BidId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverAction'
+      responses:
+        '200':
+          $ref: '#/components/responses/BidResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '502':
+          $ref: '#/components/responses/Error'
+  /bids/{id}/reject:
+    post:
+      summary: Driver declines a bid
+      parameters:
+        - $ref: '#/components/parameters/BidId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverAction'
+      responses:
+        '200':
+          $ref: '#/components/responses/BidResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '502':
+          $ref: '#/components/responses/Error'
+  /bids/{id}/withdraw:
+    post:
+      summary: Provider withdraws an open bid
+      parameters:
+        - $ref: '#/components/parameters/BidId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [providerId]
+              properties:
+                providerId: { type: string, format: uuid }
+      responses:
+        '200':
+          $ref: '#/components/responses/BidResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+components:
+  parameters:
+    BidId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BidResponse:
+      description: The bid
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [bid]
+            properties:
+              bid:
+                $ref: '#/components/schemas/Bid'
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    BidStatus:
+      type: string
+      enum: [Submitted, Accepted, Rejected, Expired, Withdrawn]
+    CreateBid:
+      type: object
+      required: [requestId, providerId, providerName, priceLkr, etaMinutes]
+      properties:
+        requestId: { type: string, format: uuid }
+        providerId: { type: string, format: uuid }
+        providerName: { type: string, minLength: 1, maxLength: 120 }
+        priceLkr: { type: integer, minimum: 1, maximum: 10000000 }
+        etaMinutes: { type: integer, minimum: 1, maximum: 1440 }
+        distanceKm: { type: [number, 'null'], minimum: 0, maximum: 1000 }
+        note: { type: [string, 'null'], maxLength: 500 }
+    DriverAction:
+      type: object
+      required: [driverId]
+      properties:
+        driverId: { type: string, format: uuid }
+    Bid:
+      type: object
+      required:
+        - id
+        - requestId
+        - providerId
+        - providerName
+        - priceLkr
+        - etaMinutes
+        - status
+        - expiresAt
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: string, format: uuid }
+        requestId: { type: string, format: uuid }
+        providerId: { type: string, format: uuid }
+        providerName: { type: string }
+        priceLkr: { type: integer }
+        etaMinutes: { type: integer }
+        distanceKm: { type: [number, 'null'] }
+        note: { type: [string, 'null'] }
+        status:
+          $ref: '#/components/schemas/BidStatus'
+        expiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }

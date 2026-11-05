@@ -125,7 +125,7 @@ plugins:
   # Lets the Admin Web dev server call Kong from the browser.
   - name: cors
     config:
-      origins: ['http://localhost:5173']
+      origins: ['http://localhost:5173', 'http://localhost:8081', 'http://localhost:8082']
       methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
       headers: [Authorization, Content-Type, X-Request-ID]
       credentials: false

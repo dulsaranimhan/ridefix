@@ -4,7 +4,7 @@ describe('canTransitionRequestStatus', () => {
   const allowed: Record<(typeof REQUEST_STATUSES)[number], readonly string[]> = {
     Created: ['Matching', 'Cancelled'],
     Matching: ['Open for bids', 'Cancelled', 'Expired'],
-    'Open for bids': ['Awaiting payment', 'Cancelled', 'Expired'],
+    'Open for bids': ['Awaiting payment', 'Booked', 'Cancelled', 'Expired'],
     'Awaiting payment': ['Cancelled', 'Expired'],
     Booked: ['On the way', 'Cancelled'],
     'On the way': ['In progress', 'Cancelled'],

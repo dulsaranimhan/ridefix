@@ -88,6 +88,7 @@ Run one workspace with a filter, for example `pnpm --filter request-service dev`
 ## Docs
 
 - [Architecture summary](docs/architecture.md)
+- [Driver app and shared API guide](docs/driver-app-and-shared-api.md)
 - [Decision log](docs/decisions.md)
 - [Open questions and data-ownership gaps](docs/open-questions.md)
 - [Milestones](docs/milestones.md)

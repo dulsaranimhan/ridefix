@@ -48,8 +48,9 @@ Created ──> Matching ──> Open for bids ──> Awaiting payment ──> 
 ```
 
 Final states: Cancelled, Expired, Disputed (Completed can move only to Disputed).
-A booking becomes **Booked** only after the Payment Service verifies ePay's signed server
-notification. Database persistence and booking updates still need implementation.
+The intended design makes a booking **Booked** only after the Payment Service verifies ePay's signed
+server notification. Payment is a placeholder for now, so accepting a bid books the request directly
+and the driver pays in cash.
 
 ## Bid status (owned by the Bidding Service)
 

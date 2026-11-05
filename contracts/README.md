@@ -7,12 +7,13 @@ behavior only; they do not expose another service's tables.
 
 | Contract                        | Coverage                                                     | Status                                                                                                                               |
 | ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `request-service.openapi.yaml`  | Create, list, read, and cancel requests                      | Implemented routes; authentication and ownership checks are pending                                                                  |
+| `request-service.openapi.yaml`  | Create, list, read, accept, progress, and cancel requests    | Implemented MVP flow; authentication and ownership checks are pending                                                                |
+| `bidding-service.openapi.yaml`  | Submit, list, accept, reject, and withdraw bids              | Implemented MVP flow; authentication is pending and payment is a placeholder                                                         |
 | `matching-service.openapi.yaml` | OSRM driving route lookup                                    | Implemented development integration; provider discovery is not implemented                                                           |
 | `payment-service.openapi.yaml`  | Checkout request validation and ePay notification validation | Implemented fail-closed behavior; checkout, persistence, idempotency, and booking confirmation are blocked on architecture contracts |
 
-All service apps expose `GET /health` through the shared service kit. The Bidding, Tracking, and
-Notification service business routes are not implemented yet; this repository does not define
+All service apps expose `GET /health` through the shared service kit. The Tracking and Notification
+service business routes are not implemented yet; this repository does not define
 invented endpoint contracts for them.
 
 ## Events

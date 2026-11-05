@@ -111,6 +111,7 @@ services:
       <<: *service-env
       PORT: 4003
       BIDDING_SERVICE_PORT: 4003
+      BID_EXPIRY_MINUTES: ${BID_EXPIRY_MINUTES:-15}
       BIDDING_DB_URL: postgres://${POSTGRES_USER:-ridefix}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ridefix_db}
 
   tracking-service:

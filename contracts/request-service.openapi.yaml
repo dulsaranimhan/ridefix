@@ -3,9 +3,9 @@ info:
   title: RideFix Request Service API
   version: 0.1.0
   description: >-
-    Current Request Service API. Authentication is not implemented; driverId is currently
-    accepted as request data and is not an authenticated identity. Do not expose this API to
-    untrusted clients until token verification and ownership checks are integrated.
+    MVP request lifecycle API. Authentication is not implemented; driverId and providerId are
+    currently accepted as request data and are not authenticated identities. Do not expose this API
+    to untrusted clients until token verification and ownership checks are integrated.
 servers:
   - url: http://localhost:4001
 paths:
@@ -40,6 +40,44 @@ paths:
       responses:
         '200':
           description: Requests ordered newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requests]
+                properties:
+                  requests:
+                    type: array
+                    items: { $ref: '#/components/schemas/Request' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/ServerError' }
+  /requests/open:
+    get:
+      summary: List requests waiting for a provider
+      responses:
+        '200':
+          description: Open requests ordered oldest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requests]
+                properties:
+                  requests:
+                    type: array
+                    items: { $ref: '#/components/schemas/Request' }
+        '500': { $ref: '#/components/responses/ServerError' }
+  /requests/assigned:
+    get:
+      summary: List active jobs assigned to a provider
+      parameters:
+        - name: providerId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Active and completed jobs for this provider
           content:
             application/json:
               schema:
@@ -88,6 +126,68 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '500': { $ref: '#/components/responses/ServerError' }
+  /requests/{id}/accept:
+    post:
+      description: >-
+        Used by the Bidding Service when a driver accepts a bid. Provider apps should submit a bid
+        with POST /bids instead of calling this directly.
+      summary: Assign an open request to the accepting provider
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [providerId]
+              properties:
+                providerId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Request accepted and assigned
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [request]
+                properties:
+                  request: { $ref: '#/components/schemas/Request' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/ServerError' }
+  /requests/{id}/status:
+    patch:
+      summary: Update an assigned job through its work states
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [providerId, status]
+              properties:
+                providerId: { type: string, format: uuid }
+                status:
+                  type: string
+                  enum: [On the way, In progress, Completed]
+      responses:
+        '200':
+          description: Job status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [request]
+                properties:
+                  request: { $ref: '#/components/schemas/Request' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/ServerError' }
 components:
   parameters:
     RequestId:
@@ -102,6 +202,7 @@ components:
       properties:
         driverId: { type: string, format: uuid }
         vehicleId: { type: [string, 'null'], format: uuid }
+        vehicleDescription: { type: [string, 'null'], maxLength: 200 }
         serviceType:
           type: string
           enum: [Roadside Assistance, Book a Garage, Towing Service, Battery Service]
@@ -116,6 +217,7 @@ components:
           required: [id, status, createdAt, updatedAt]
           properties:
             id: { type: string, format: uuid }
+            providerId: { type: [string, 'null'], format: uuid }
             status:
               type: string
               enum:
