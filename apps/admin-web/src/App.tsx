@@ -263,7 +263,6 @@ function PageHeading({
         <h1>{title}</h1>
         <p>{subtitle}</p>
       </div>
-      <span className="rf-demo-tag">Sprint 1 · Demo data</span>
     </div>
   );
 }
@@ -485,10 +484,6 @@ function DashboardPage() {
 
         <section className="rf-panel">
           <div className="rf-panel-head">
-            <div>
-              <h2>Sprint 1 Workflow</h2>
-              <p>Core marketplace journey</p>
-            </div>
           </div>
 
           <div className="rf-journey">
