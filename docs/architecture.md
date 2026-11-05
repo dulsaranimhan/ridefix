@@ -11,13 +11,13 @@ disagree, the PDF wins unless a newer decision is recorded in [decisions.md](dec
 | Driver Mobile App    | React Native + TypeScript            | Yes                | `apps/driver-mobile`            |
 | Provider Mobile App  | React Native + TypeScript            | Yes                | `apps/provider-mobile`          |
 | Admin Web Dashboard  | React + TypeScript                   | Yes                | `apps/admin-web`                |
-| Auth                 | Supabase Auth                        | No, configure only | (Supabase project)              |
+| Auth                 | Self-hosted auth service             | To implement       | Not present yet                 |
 | API Gateway          | Kong Gateway (DB-less, declarative)  | No, configure only | `infra/kong`                    |
 | Request Service      | Node.js + Express + TS               | Core code          | `services/request-service`      |
-| Matching Service     | Node.js + TS + PostGIS + Google Maps | Integrate + code   | `services/matching-service`     |
+| Matching Service     | Node.js + TS + PostGIS + OSRM        | Integrate + code   | `services/matching-service`     |
 | Bidding Service      | Node.js + Express + TS               | Core code          | `services/bidding-service`      |
 | Tracking Service     | Node.js + Socket.IO                  | Integrate + code   | `services/tracking-service`     |
-| Payment Service      | Node.js + TS + PayHere               | Integrate + code   | `services/payment-service`      |
+| Payment Service      | Node.js + TS + ePay                  | Integrate + code   | `services/payment-service`      |
 | Notification Service | Node.js + TS + FCM                   | Integrate + code   | `services/notification-service` |
 | Redis, RabbitMQ      | Optional helpers                     | No                 | `infra/` (optional profile)     |
 
@@ -30,9 +30,9 @@ the architecture.
 2. Each service owns its PostgreSQL database. No service reads or writes another service's tables.
    Locally, all six databases run on one PostgreSQL server, each with its own login, so the rule is
    still enforced by permissions.
-3. Kong checks the Supabase JWT first. The service still reads the user ID and role **from the
-   verified token** and checks role and record ownership itself. Never trust `userId` or `role`
-   from a request body.
+3. Auth and token verification are not implemented yet. When added, services must read the user ID
+   and role from a verified token and check role and record ownership. Never trust `userId` or
+   `role` from a request body.
 4. Main flow uses direct HTTP (Request -> Matching -> Bidding). Events (RabbitMQ, optional) are for
    accept bid, payment done and notifications. Without RabbitMQ, the same events are direct calls.
 5. Secrets come from environment variables. Only `.env.example` files with placeholders are
@@ -48,8 +48,8 @@ Created ──> Matching ──> Open for bids ──> Awaiting payment ──> 
 ```
 
 Final states: Cancelled, Expired, Disputed (Completed can move only to Disputed).
-A booking becomes **Booked** only after the Payment Service verifies PayHere's signed server
-notification.
+A booking becomes **Booked** only after the Payment Service verifies ePay's signed server
+notification. Database persistence and booking updates still need implementation.
 
 ## Bid status (owned by the Bidding Service)
 

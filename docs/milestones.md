@@ -9,7 +9,7 @@
 | 5   | API contracts, event formats, database ownership, status transitions           | Not started |
 | 6   | End-to-end vertical slice (sign in -> request -> bids -> pay -> track -> done) | Not started |
 | 7   | Remaining Driver, Provider and Admin screens wired to the APIs                 | Not started |
-| 8   | Maps, notifications and payment integrations (sandbox)                         | Not started |
+| 8   | Maps, notifications and payment integrations (sandbox)                         | In progress |
 | 9   | Service/API tests and end-to-end checks with mocks                             | Not started |
 | 10  | Setup guide, architecture notes, demo data, known limitations, demo script     | Not started |
 
@@ -36,6 +36,19 @@
 - Kong (DB-less) routes `/requests`, `/matching`, `/bids`, `/tracking`, `/payments`,
   `/notifications`, plus `GET /health/<service>`. Plugins: rate limiting, correlation ID
   (`X-Request-ID`), JSON access log, CORS for Admin Web.
-- **Kong does not check JWTs yet.** That is added in milestone 6 after confirming the Supabase
-  signing method (D19).
+- **Kong does not check JWTs yet.** Add verification after the self-hosted auth service and token
+  format are implemented.
 - Redis and RabbitMQ start only with `--profile optional`.
+
+## Milestone 8 progress
+
+- Matching exposes `GET /matching/route` using OSRM; the default public demo endpoint is for local
+  development only and is rate limited/best-effort. Self-host OSRM or choose a suitable provider
+  before production.
+- The mobile app config now points at OpenStreetMap raster tiles and includes visible attribution
+  text. A map screen is not implemented yet. OSM's community tile server is best-effort and subject
+  to its usage policy; it is not a production tile hosting commitment.
+- Payment Service creates an ePay hosted-checkout form and verifies the ePay notification hash.
+  Payment/booking persistence and idempotency are still pending, so this is not a complete booking
+  payment flow yet. Sandbox merchant credentials and a public HTTPS notification URL are required
+  to exercise it end-to-end.
