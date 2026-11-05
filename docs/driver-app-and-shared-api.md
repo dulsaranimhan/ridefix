@@ -78,29 +78,28 @@ Each app owner sets the API URL and calls Kong. The app code stays with its owne
 ### Provider app settings
 
 ```
+EXPO_PUBLIC_SUPABASE_URL=<same project as the Driver app>
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon or publishable key>
 EXPO_PUBLIC_API_BASE_URL=http://<host LAN IP>:8000
-EXPO_PUBLIC_PROVIDER_ID=<a UUID unique to this provider>
 ```
 
-Until real provider identity exists, each person testing needs their own UUID. Two people using the
-same UUID appear as one provider. The app also sends a provider name with each bid.
+The provider ID comes from the signed-in Supabase user, and the provider name from the name given at
+registration.
 
 ### Provider app flow
 
-| Step                     | Call                                                                                    |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| 1. See open requests     | `GET /requests/open`                                                                    |
-| 2. Send an offer         | `POST /bids` with `requestId`, `providerId`, `providerName`, `priceLkr`, `etaMinutes`   |
-| 3. See own offers        | `GET /bids?providerId=<uuid>`                                                           |
-| 4. Withdraw an offer     | `POST /bids/{id}/withdraw` with `{ "providerId": "<uuid>" }`                            |
-| 5. See won jobs          | `GET /requests/assigned?providerId=<uuid>`                                              |
-| 6. Update the job status | `PATCH /requests/{id}/status` with `{ "providerId": "<uuid>", "status": "On the way" }` |
+| Step                     | Screen     | Call                                                                                    |
+| ------------------------ | ---------- | --------------------------------------------------------------------------------------- |
+| 1. Go online             | Jobs       | `PUT /matching/providers/{id}/availability` with `{ "isAvailable": true }`              |
+| 2. See open requests     | Jobs       | `GET /requests/open`, refreshed every 4 seconds                                         |
+| 3. Send an offer         | Jobs       | `POST /bids` with `requestId`, `providerId`, `providerName`, `priceLkr`, `etaMinutes`   |
+| 4. See own offers        | Jobs       | `GET /bids?providerId=<uuid>`                                                           |
+| 5. Withdraw an offer     | Jobs       | `POST /bids/{id}/withdraw` with `{ "providerId": "<uuid>" }`                            |
+| 6. See won jobs          | Active job | `GET /requests/assigned?providerId=<uuid>`                                              |
+| 7. Update the job status | Active job | `PATCH /requests/{id}/status` with `{ "providerId": "<uuid>", "status": "On the way" }` |
 
-`distanceKm` and `note` are optional in `POST /bids`. Job status order after a bid is accepted is
-`Booked → On the way → In progress → Completed`.
-
-Replace any call to `POST /requests/{id}/accept` in the Provider app with `POST /bids`. A direct accept
-skips the driver's choice, because the Bidding Service now makes that call when a driver accepts a bid.
+Availability only controls what the Provider app shows. The API does not yet refuse a bid from an
+offline provider, and it does not filter requests by distance.
 
 ### Admin Web settings and calls
 

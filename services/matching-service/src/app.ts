@@ -1,4 +1,5 @@
 import { createServiceApp, HttpError } from '@ridefix/service-kit';
+import { pool } from './db';
 
 export const SERVICE_NAME = 'matching-service';
 
@@ -11,8 +12,52 @@ function coordinate(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const AVAILABILITY_COLUMNS = `
+  provider_id AS "providerId",
+  is_available AS "isAvailable",
+  updated_at AS "updatedAt"`;
+
+function requireProviderId(value: unknown): string {
+  if (typeof value !== 'string' || !UUID_PATTERN.test(value)) {
+    throw new HttpError(400, 'invalid_provider_id', 'A valid provider ID UUID is required');
+  }
+  return value;
+}
+
 export function buildApp() {
   return createServiceApp({ name: SERVICE_NAME }, (app) => {
+    // Provider IDs are unverified request data until JWT verification exists.
+    app.get('/matching/providers/:providerId/availability', async (req, res) => {
+      const providerId = requireProviderId(req.params.providerId);
+      const result = await pool.query(
+        `SELECT ${AVAILABILITY_COLUMNS} FROM provider_availability WHERE provider_id = $1`,
+        [providerId],
+      );
+      // A provider who has never set this is offline.
+      res.json({
+        availability: result.rows[0] ?? { providerId, isAvailable: false, updatedAt: null },
+      });
+    });
+
+    app.put('/matching/providers/:providerId/availability', async (req, res) => {
+      const providerId = requireProviderId(req.params.providerId);
+      const isAvailable = (req.body as { isAvailable?: unknown } | undefined)?.isAvailable;
+      if (typeof isAvailable !== 'boolean') {
+        throw new HttpError(400, 'invalid_availability', 'isAvailable must be true or false');
+      }
+      const result = await pool.query(
+        `INSERT INTO provider_availability (provider_id, is_available)
+         VALUES ($1, $2)
+         ON CONFLICT (provider_id)
+         DO UPDATE SET is_available = EXCLUDED.is_available, updated_at = NOW()
+         RETURNING ${AVAILABILITY_COLUMNS}`,
+        [providerId, isAvailable],
+      );
+      res.json({ availability: result.rows[0] });
+    });
+
     app.get('/matching/route', async (req, res, next) => {
       const { fromLng, fromLat, toLng, toLat } = req.query;
       const points = [fromLng, fromLat, toLng, toLat].map((value) =>

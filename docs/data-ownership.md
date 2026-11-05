@@ -7,7 +7,7 @@ Request Service and Bidding Service migration; other services do not yet have do
 | Service              | Responsibility in the current architecture              | Current implementation state                                                                                     |
 | -------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Request Service      | Requests and their lifecycle status                     | Request table and status-transition helper exist. Authentication and ownership enforcement are pending.          |
-| Matching Service     | Provider discovery and matching                         | Route lookup exists; provider discovery and matching data are not implemented.                                   |
+| Matching Service     | Provider availability, discovery, and matching          | Route lookup and `provider_availability` exist; provider discovery is not implemented.                           |
 | Bidding Service      | Bid offers and bid lifecycle                            | `bids` table and API exist. Authentication and verified ownership are pending.                                   |
 | Tracking Service     | Live location data for an active booking                | Socket.IO shell refuses connections until authorization exists; no location schema or API is implemented.        |
 | Payment Service      | Payment attempts, provider results, and payment history | Checkout and notification validation exist in fail-closed form; no payment schema or persistence is implemented. |

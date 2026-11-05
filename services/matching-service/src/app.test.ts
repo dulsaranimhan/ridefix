@@ -1,6 +1,13 @@
 import request from 'supertest';
 import { buildApp, SERVICE_NAME } from './app';
 
+jest.mock('./db', () => ({ pool: { query: jest.fn() } }));
+
+import { pool } from './db';
+
+const mockQuery = pool.query as jest.Mock;
+const PROVIDER_ID = '650e8400-e29b-41d4-a716-446655440000';
+
 const originalOsrmBaseUrl = process.env.OSRM_BASE_URL;
 
 function osrmResponse(payload: unknown, status = 200): Response {
@@ -131,5 +138,45 @@ describe(SERVICE_NAME, () => {
     );
     expect(res.status).toBe(502);
     expect(res.body.error).toMatchObject({ code: 'routing_unavailable' });
+  });
+
+  describe('provider availability', () => {
+    beforeEach(() => mockQuery.mockReset());
+
+    it('reports a provider with no saved value as offline', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const res = await request(buildApp()).get(`/matching/providers/${PROVIDER_ID}/availability`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.availability).toEqual({
+        providerId: PROVIDER_ID,
+        isAvailable: false,
+        updatedAt: null,
+      });
+    });
+
+    it('saves availability', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ providerId: PROVIDER_ID, isAvailable: true }] });
+
+      const res = await request(buildApp())
+        .put(`/matching/providers/${PROVIDER_ID}/availability`)
+        .send({ isAvailable: true });
+
+      expect(res.status).toBe(200);
+      expect(res.body.availability.isAvailable).toBe(true);
+      expect(mockQuery.mock.calls[0][1]).toEqual([PROVIDER_ID, true]);
+    });
+
+    it('rejects an invalid provider ID and value', async () => {
+      const badId = await request(buildApp()).get('/matching/providers/nope/availability');
+      const badValue = await request(buildApp())
+        .put(`/matching/providers/${PROVIDER_ID}/availability`)
+        .send({ isAvailable: 'yes' });
+
+      expect(badId.body.error.code).toBe('invalid_provider_id');
+      expect(badValue.body.error.code).toBe('invalid_availability');
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
   });
 });
