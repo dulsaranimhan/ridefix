@@ -3,10 +3,41 @@ info:
   title: RideFix Matching Service API
   version: 0.1.0
   description: >-
-    Current route lookup endpoint backed by OSRM. Provider discovery and matching are not implemented.
+    Route lookup backed by OSRM, and provider availability. Provider discovery and matching are not
+    implemented. Provider IDs are not authenticated identities yet.
 servers:
   - url: http://localhost:4002
 paths:
+  /matching/providers/{providerId}/availability:
+    parameters:
+      - name: providerId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      summary: Read a provider's availability
+      description: A provider who has never set this is reported as offline.
+      responses:
+        '200':
+          $ref: '#/components/responses/AvailabilityResponse'
+        '400':
+          $ref: '#/components/responses/AvailabilityError'
+    put:
+      summary: Set a provider's availability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isAvailable]
+              properties:
+                isAvailable: { type: boolean }
+      responses:
+        '200':
+          $ref: '#/components/responses/AvailabilityResponse'
+        '400':
+          $ref: '#/components/responses/AvailabilityError'
   /matching/route:
     get:
       operationId: getDrivingRoute
@@ -57,6 +88,23 @@ paths:
         '502': { $ref: '#/components/responses/Error' }
 components:
   responses:
+    AvailabilityResponse:
+      description: The provider's availability
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [availability]
+            properties:
+              availability:
+                type: object
+                required: [providerId, isAvailable, updatedAt]
+                properties:
+                  providerId: { type: string, format: uuid }
+                  isAvailable: { type: boolean }
+                  updatedAt: { type: [string, 'null'], format: date-time }
+    AvailabilityError:
+      description: Invalid provider ID or value
     Error:
       description: Request or upstream routing error
       content:
