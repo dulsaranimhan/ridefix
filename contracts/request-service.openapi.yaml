@@ -9,6 +9,24 @@ info:
 servers:
   - url: http://localhost:4001
 paths:
+  /requests/admin:
+    get:
+      summary: List recent requests for the local Admin Web prototype
+      description: Local development only. This route is disabled in production until admin authentication and authorization are implemented.
+      responses:
+        '200':
+          description: Up to 500 requests ordered newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requests]
+                properties:
+                  requests:
+                    type: array
+                    items: { $ref: '#/components/schemas/Request' }
+        '404': { description: Disabled in production }
+        '500': { $ref: '#/components/responses/ServerError' }
   /requests:
     post:
       summary: Create a request

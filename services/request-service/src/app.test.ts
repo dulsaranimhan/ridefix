@@ -36,6 +36,31 @@ describe(SERVICE_NAME, () => {
     });
   });
 
+  it('GET /requests/admin lists recent requests for the local admin dashboard', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: '650e8400-e29b-41d4-a716-446655440000', status: 'Open for bids' }],
+    });
+
+    const res = await request(buildApp()).get('/requests/admin');
+
+    expect(res.status).toBe(200);
+    expect(res.body.requests).toHaveLength(1);
+    expect(mockQuery.mock.calls[0][0]).toContain('LIMIT 500');
+  });
+
+  it('disables the local admin request list in production', async () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const res = await request(buildApp()).get('/requests/admin');
+      expect(res.status).toBe(404);
+      expect(mockQuery).not.toHaveBeenCalled();
+    } finally {
+      if (previous === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previous;
+    }
+  });
+
   it('POST /requests creates a request', async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [
