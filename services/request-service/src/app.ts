@@ -57,6 +57,22 @@ const REQUEST_COLUMNS = `
 
 export function buildApp() {
   return createServiceApp({ name: SERVICE_NAME }, (app) => {
+    // Local read-only data source for Admin Web. Keep unavailable in production until
+    // admin authentication and authorization are implemented.
+    app.get('/requests/admin', async (_req: Request, res: Response) => {
+      if (process.env.NODE_ENV === 'production') {
+        throw new HttpError(404, 'not_found', 'Not found');
+      }
+
+      const result = await pool.query(
+        `SELECT ${REQUEST_COLUMNS}
+         FROM requests
+         ORDER BY created_at DESC
+         LIMIT 500`,
+      );
+      res.status(200).json({ requests: result.rows });
+    });
+
     app.post('/requests', async (req: Request, res: Response) => {
       const body = req.body as CreateRequestBody;
 
