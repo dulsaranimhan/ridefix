@@ -48,7 +48,25 @@ export interface Bid {
 }
 
 interface ApiErrorBody {
-  error?: { message?: string };
+  error?: { code?: string; message?: string };
+}
+
+/** An error response from the API. `status` lets callers tell a bad login from a network problem. */
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string | undefined,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+let authToken: string | null = null;
+
+/** The signed-in user's token. Sent as `Authorization: Bearer` on every API call until cleared. */
+export function setAuthToken(token: string | null) {
+  authToken = token;
 }
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -70,7 +88,11 @@ export async function requestApi<T>(path: string, init?: RequestInit): Promise<T
     response = await fetch(`${apiBaseUrl}${path}`, {
       ...init,
       signal: controller.signal,
-      headers: { 'Content-Type': 'application/json', ...init?.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...init?.headers,
+      },
     });
   } catch {
     throw new Error(
@@ -82,7 +104,11 @@ export async function requestApi<T>(path: string, init?: RequestInit): Promise<T
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiErrorBody;
-    throw new Error(body.error?.message ?? `Request failed (${response.status})`);
+    throw new ApiError(
+      response.status,
+      body.error?.code,
+      body.error?.message ?? `Request failed (${response.status})`,
+    );
   }
   return (await response.json()) as T;
 }
