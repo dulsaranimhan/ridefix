@@ -8,12 +8,14 @@ import { OutlineButton, PrimaryButton } from '../components/PrimaryButton';
 import { Card, ErrorText, Muted } from '../components/Screen';
 import { TextField } from '../components/parts';
 import { useDriverData } from '../lib/driver-data';
-import { supabase } from '../lib/supabase';
 import { ui } from '../theme';
 import { RequestHistory } from './RequestHistory';
 
+const MIN_PASSWORD_LENGTH = 8;
+
 function SignInCard() {
-  const { authConfigured } = useDriverData();
+  const { signIn, signUp } = useDriverData();
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -22,35 +24,38 @@ function SignInCard() {
   const [isError, setIsError] = useState(false);
 
   async function submitAuth() {
-    if (!supabase) return;
     setBusy(true);
     setMessage('');
-    const result = isSignUp
-      ? await supabase.auth.signUp({ email: email.trim(), password })
-      : await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setBusy(false);
-    setIsError(!!result.error);
-    if (result.error) {
-      setMessage(result.error.message);
-    } else if (isSignUp && !result.data.session) {
-      setMessage('Check your email to confirm your account, then sign in.');
-    } else {
+    try {
+      if (isSignUp) {
+        await signUp({ email: email.trim(), password, fullName: fullName.trim() });
+      } else {
+        await signIn({ email: email.trim(), password });
+      }
       setPassword('');
+    } catch (error) {
+      setIsError(true);
+      setMessage(error instanceof Error ? error.message : 'Could not sign in.');
+    } finally {
+      setBusy(false);
     }
   }
 
-  if (!authConfigured) {
-    return (
-      <Card>
-        <Muted>
-          Sign-in is not configured yet. You can keep browsing the app without an account.
-        </Muted>
-      </Card>
-    );
-  }
+  const canSubmit =
+    !!email.trim() &&
+    password.length >= (isSignUp ? MIN_PASSWORD_LENGTH : 1) &&
+    (!isSignUp || !!fullName.trim());
 
   return (
     <Card style={styles.authCard}>
+      {isSignUp && (
+        <TextField
+          label="Full name"
+          onChangeText={setFullName}
+          placeholder="Kasun Perera"
+          value={fullName}
+        />
+      )}
       <TextField
         label="Email"
         autoCapitalize="none"
@@ -63,14 +68,14 @@ function SignInCard() {
         label="Password"
         autoCapitalize="none"
         onChangeText={setPassword}
-        placeholder="At least 6 characters"
+        placeholder={isSignUp ? `At least ${MIN_PASSWORD_LENGTH} characters` : 'Your password'}
         secureTextEntry
         value={password}
       />
       <PrimaryButton
         title={busy ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
         onPress={() => void submitAuth()}
-        disabled={busy || !email.trim() || password.length < 6}
+        disabled={busy || !canSubmit}
       />
       {busy && <ActivityIndicator color={ui.orange} />}
       <Text
@@ -90,7 +95,7 @@ function SignInCard() {
 
 export function ProfileScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
-  const { user, displayName, vehicles, requests } = useDriverData();
+  const { user, displayName, vehicles, requests, signOut: endSession } = useDriverData();
   const [history, setHistory] = useState<'requests' | 'bookings' | null>(null);
   const [notice, setNotice] = useState('');
 
@@ -105,9 +110,12 @@ export function ProfileScreen() {
   }
 
   async function signOut() {
-    if (!supabase) return;
-    const { error } = await supabase.auth.signOut();
-    setNotice(error?.message ?? '');
+    try {
+      await endSession();
+      setNotice('');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not sign out.');
+    }
   }
 
   const bookings = requests.filter((request) => request.providerId).length;
@@ -180,7 +188,6 @@ export function ProfileScreen() {
               <View style={styles.heroText}>
                 <Text style={styles.name}>{user ? displayName : 'Welcome to RideFix'}</Text>
                 <Text style={styles.heroDetail}>{user?.email ?? 'Sign in to send requests'}</Text>
-                {!!user?.phone && <Text style={styles.heroDetail}>{user.phone}</Text>}
               </View>
             </View>
             {user && (

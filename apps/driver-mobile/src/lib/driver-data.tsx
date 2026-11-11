@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { User } from '@supabase/supabase-js';
 import {
   createContext,
   useCallback,
@@ -10,8 +9,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import * as auth from './auth-client';
+import type { AuthUser } from './auth-client';
 import { requestApi, type Bid, type RideRequest } from './request-api';
-import { supabase } from './supabase';
 
 export type VehicleKind = 'car' | 'suv' | 'motorbike' | 'van';
 
@@ -57,8 +57,12 @@ export interface NewRequest {
 }
 
 interface DriverData {
-  authConfigured: boolean;
-  user: User | null;
+  /** False until the saved session has been read from the device. */
+  authReady: boolean;
+  user: AuthUser | null;
+  signIn(input: { email: string; password: string }): Promise<void>;
+  signUp(input: { email: string; password: string; fullName: string }): Promise<void>;
+  signOut(): Promise<void>;
   displayName: string;
   requests: RideRequest[];
   activeRequest: RideRequest | null;
@@ -98,7 +102,7 @@ function logStorageError(error: unknown) {
 const DriverDataContext = createContext<DriverData | null>(null);
 
 function buildNotifications(
-  user: User | null,
+  user: AuthUser | null,
   requests: RideRequest[],
   bids: Bid[],
 ): DriverNotification[] {
@@ -110,7 +114,7 @@ function buildNotifications(
       status: 'welcome',
       title: 'Welcome to RideFix!',
       body: 'Thank you for joining RideFix.',
-      at: user.created_at,
+      at: user.createdAt,
     });
   }
 
@@ -179,7 +183,8 @@ function buildNotifications(
 }
 
 export function DriverDataProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [requests, setRequests] = useState<RideRequest[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [refreshError, setRefreshError] = useState('');
@@ -195,14 +200,36 @@ export function DriverDataProvider({ children }: { children: ReactNode }) {
   const seenKey = `ridefix:notifications-seen:${storageOwner}`;
 
   useEffect(() => {
-    if (!supabase) return;
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    void supabase.auth.getSession().then(({ data: sessionData }) => {
-      setUser(sessionData.session?.user ?? null);
-    });
-    return () => data.subscription.unsubscribe();
+    let active = true;
+    void auth
+      .restoreSession()
+      .then(async (session) => {
+        if (!active) return;
+        setUser(session.user);
+        setAuthReady(true);
+        const checked = await session.refresh();
+        if (active) setUser(checked);
+      })
+      .catch((error: unknown) => {
+        logStorageError(error);
+        if (active) setAuthReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const signIn = useCallback<DriverData['signIn']>(async (input) => {
+    setUser(await auth.login(input));
+  }, []);
+
+  const signUp = useCallback<DriverData['signUp']>(async (input) => {
+    setUser(await auth.register(input));
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await auth.logout();
+    setUser(null);
   }, []);
 
   useEffect(() => {
@@ -401,9 +428,12 @@ export function DriverDataProvider({ children }: { children: ReactNode }) {
   }, [lastSeenAt, notifications, seenKey]);
 
   const value: DriverData = {
-    authConfigured: supabase !== null,
+    authReady,
     user,
-    displayName: user?.email?.split('@')[0] ?? 'there',
+    signIn,
+    signUp,
+    signOut,
+    displayName: user?.fullName ?? 'there',
     requests,
     activeRequest: requests.find((request) => ACTIVE_STATUSES.has(request.status)) ?? null,
     bids,

@@ -9,7 +9,6 @@ import { ErrorText, Muted, Screen } from '../components/Screen';
 import { BellButton, IconTile, Logo, StatusPill, VehicleIcon } from '../components/parts';
 import { formatLkr, useDriverData, vehicleLabel } from '../lib/driver-data';
 import type { Bid, RideRequest } from '../lib/request-api';
-import { supabase } from '../lib/supabase';
 import { ui } from '../theme';
 import { RequestHistory, RequestRow } from './RequestHistory';
 import {
@@ -158,7 +157,7 @@ export function HomeScreen() {
   }
 
   async function send() {
-    if (!supabase || !user) {
+    if (!user) {
       setSendError('Sign in from Profile before sending a request. Your details stay here.');
       return;
     }
