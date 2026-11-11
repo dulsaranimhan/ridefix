@@ -1,6 +1,6 @@
 # services
 
-The six RideFix backend services (added in milestone 3). Each one has its own database and the
+The seven RideFix backend services (added in milestone 3). Each one has its own database and the
 same layers: Controller -> logic -> Repository.
 
 | Service                | Port | Owns                                                |
@@ -11,3 +11,4 @@ same layers: Controller -> logic -> Repository.
 | `tracking-service`     | 4004 | Live location during an active booking (Socket.IO)  |
 | `payment-service`      | 4005 | ePay hosted checkout and signed payment notifications |
 | `notification-service` | 4006 | Notification rules and FCM device tokens            |
+| `auth-service`         | 4007 | User accounts, password login and JWTs              |
