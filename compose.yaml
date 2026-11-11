@@ -25,6 +25,10 @@ x-service: &service
     PAYMENT_SERVICE_URL: http://payment-service:4005
     NOTIFICATION_SERVICE_URL: http://notification-service:4006
     AUTH_SERVICE_URL: http://auth-service:4007
+    # Every service verifies login tokens with this secret (service-kit currentUser).
+    JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+    # Transition only: also accept X-User-Id / X-User-Role headers when no token is sent.
+    ALLOW_DEV_HEADERS: ${ALLOW_DEV_HEADERS:-false}
   healthcheck:
     test: ['CMD-SHELL', 'wget -qO- http://localhost:$$PORT/health || exit 1']
     interval: 10s
@@ -174,7 +178,6 @@ services:
       PORT: 4007
       AUTH_SERVICE_PORT: 4007
       AUTH_DB_URL: postgres://${POSTGRES_USER:-ridefix}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ridefix_db}
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
 
   redis:
     image: redis:7-alpine
