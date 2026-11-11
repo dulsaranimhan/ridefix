@@ -1,10 +1,12 @@
 # Kong declarative configuration (DB-less mode).
 #
-# Clients call Kong on port 8000. Kong forwards each request to one of the six services by URL
+# Clients call Kong on port 8000. Kong forwards each request to one of the seven services by URL
 # path. Services are not published to the host in Docker Compose, so Kong is the only front door.
 #
-# NOT DONE YET: JWT verification. Define Supabase JWT validation before protected MVP workflows
-# rely on identity. Until then Kong does NOT verify tokens, so this setup is for local development.
+# Login: auth-service issues RideFix JWTs at /auth/register and /auth/login, and every service
+# checks them with service-kit's currentUser middleware.
+# NOT DONE YET: Kong's own jwt plugin. It is switched on in a later milestone, after the apps send
+# tokens. Until then Kong does NOT reject requests without a token.
 _format_version: '3.0'
 
 services:
@@ -101,6 +103,23 @@ services:
     routes:
       - name: notification-health
         paths: [/health/notification]
+        methods: [GET]
+        strip_path: true
+
+  # POST /auth/register, POST /auth/login and GET /auth/me. Register and login stay public.
+  - name: auth-service
+    url: http://auth-service:4007
+    routes:
+      - name: auth
+        paths: [/auth]
+        strip_path: false
+
+  # GET /health/auth -> auth-service GET /health
+  - name: auth-service-health
+    url: http://auth-service:4007/health
+    routes:
+      - name: auth-health
+        paths: [/health/auth]
         methods: [GET]
         strip_path: true
 
